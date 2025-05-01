@@ -10,7 +10,17 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 
-export default function AgentScatterChart({ data }: { data: Agent[] }) {
+export default function AgentScatterChart({
+  data,
+  onPointClick,
+}: {
+  data: {
+    agent_id: string;
+    x: number;
+    y: number;
+  }[];
+  onPointClick?: (id: string) => void;
+}) {
   return (
     <div className="bg-white dark:bg-[#1e2732] shadow-sm p-4 border border-gray-200 dark:border-[#2f3336] rounded-xl">
       <div className="mb-2 text-gray-500 dark:text-gray-400 text-sm">
@@ -22,15 +32,15 @@ export default function AgentScatterChart({ data }: { data: Agent[] }) {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis
             type="number"
-            dataKey="trust"
-            name="Trust"
+            dataKey="x"
+            name="Hesitancy"
             domain={[0, 1]}
             tick={{ fontSize: 12 }}
           />
           <YAxis
             type="number"
-            dataKey="hesitancy"
-            name="Hesitancy"
+            dataKey="y"
+            name="Recommendation"
             domain={[0, 1]}
             tick={{ fontSize: 12 }}
           />
@@ -45,6 +55,11 @@ export default function AgentScatterChart({ data }: { data: Agent[] }) {
             data={data}
             fill="#1d9bf0"
             shape="circle"
+            onClick={(e: any) => {
+              if (onPointClick && e?.payload?.agent_id) {
+                onPointClick(e.payload.agent_id);
+              }
+            }}
             animationDuration={300}
           />
         </ScatterChart>

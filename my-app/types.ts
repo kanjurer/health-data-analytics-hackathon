@@ -1,6 +1,19 @@
 type AgentMeta = {
+  id: string;
   name: string;
-  description: string;
+  age: number;
+  gender: string;
+  nationality: string;
+  education: string;
+  income_bracket: string;
+  occupation: string;
+  location_type: string;
+  marital_status: string;
+  number_of_children: number;
+  prior_vaccine_experience: string;
+  vaccine_belief: string;
+  description?: string;
+  personality_traits?: string[];
 };
 
 type Agent = {
@@ -14,5 +27,12 @@ type SimulationConfig = {
   fakeActors: number;
   duration: number;
   speed: number;
-  customAgents: AgentMeta[];
+  agents: AgentMeta[];
+  exposure: number;
+};
+
+type Tweet = {
+  id: number;
+  content: string;
+  created_by: string;
 };

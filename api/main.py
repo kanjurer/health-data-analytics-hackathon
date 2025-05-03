@@ -7,11 +7,13 @@ import json
 from fastapi.middleware.cors import CORSMiddleware
 import time
 from schemas import AgentCreate, RunCreate, GraphCreate
+import random
 
 from agents.naive_agent import create_naive_agent
 from agents.good_agent import create_good_agent
 from agents.bad_agent import create_bad_agent
 from semantic_similarity import map_opinion_data_to_2d
+from semantic_similarity import cosine_similarity_between_texts
 
 app = FastAPI()
 app.add_middleware(
@@ -255,6 +257,8 @@ def execute_agents(db) -> list[GraphCreate]:
                 "content": db_tweet.content,
                 "created_by": db_tweet.created_by,
             })
+    
+    random.shuffle(new_tweets)
             
     data = []
     for agent in AGENTS["naive"]:
@@ -302,27 +306,52 @@ def execute_agents(db) -> list[GraphCreate]:
     return graphs
     
     
-
 @app.get("/summary_run/{run_id}")
 def get_run_summary(run_id: str, db: Session = Depends(get_db)):
-    # Fetch the specified run
     db_run = db.query(Run).filter(Run.id == run_id).first()
     if not db_run:
         raise HTTPException(status_code=404, detail="Run not found")
 
-    # Fetch all related graph points ordered by duration_remaining ASC
+    # Get all graph entries ordered by time
     graph = (
         db.query(Graph)
         .filter(Graph.run_id == run_id)
-        .order_by(Graph.duration_remaining.asc())
+        .order_by(Graph.agent_id, Graph.duration_remaining.desc())
         .all()
     )
 
-    # Extract agent IDs from the graph
-    agent_ids = {g.agent_id for g in graph}
+    # Build per-agent belief histories
+    belief_history: dict[str, list[str]] = {}
+    graph_response: list[dict] = []
+
+    for g in graph:
+        agent_id = g.agent_id
+        prev_beliefs = belief_history.get(agent_id, [])
+        current_beliefs = g.beliefs or ""
+
+        if not prev_beliefs:
+            belief_change = 0.0
+        else:
+            belief_change = cosine_similarity_between_texts(prev_beliefs[-1], current_beliefs)
+
+        # Update history
+        belief_history.setdefault(agent_id, []).append(current_beliefs)
+
+        graph_response.append({
+            "agent_id": agent_id,
+            "x": g.x,
+            "y": g.y,
+            "hesitancy": g.hesitancy,
+            "recommendation": g.recommendation,
+            "beliefs": current_beliefs,
+            "duration_remaining": g.duration_remaining,
+            "belief_change": round(belief_change, 4)
+        })
+
+    # Attach agents
+    agent_ids = list({g.agent_id for g in graph})
     agents = db.query(Agent).filter(Agent.id.in_(agent_ids)).all()
 
-    # Return structured JSON
     return {
         "run": {
             "id": db_run.id,
@@ -337,17 +366,7 @@ def get_run_summary(run_id: str, db: Session = Depends(get_db)):
             "num_bad_agents": db_run.num_bad_agents,
             "num_naive_agents": db_run.num_naive_agents
         },
-        "graph": [
-            {
-                "agent_id": g.agent_id,
-                "x": g.x,
-                "y": g.y,
-                "hesitancy": g.hesitancy,
-                "recommendation": g.recommendation,
-                "beliefs": g.beliefs,
-                "duration_remaining": g.duration_remaining
-            } for g in graph
-        ],
+        "graph": graph_response,
         "agents": [
             {
                 "id": a.id,
@@ -372,6 +391,7 @@ def get_run_summary(run_id: str, db: Session = Depends(get_db)):
         ]
     }
 
+
 @app.get("/runs/")
 def get_runs(db: Session = Depends(get_db)):
     runs = db.query(Run).all()
@@ -390,6 +410,7 @@ def get_runs(db: Session = Depends(get_db)):
             "num_bad_agents": run.num_bad_agents,
             "num_naive_agents": run.num_naive_agents
         })
+        
     return result
 
 
@@ -407,7 +428,6 @@ def get_agents(db: Session = Depends(get_db)):
     agents = db.query(Agent).all()
     result = []
     for agent in agents:
-        print(agent.personality_traits)
         result.append({
             "id": agent.id,
             "name": agent.name,

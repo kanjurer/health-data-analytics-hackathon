@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react';
 import { getAllRuns, getRunDetails } from '@/fetchapi';
 import BackButton from '@/components/BackButton';
-import OpinionChart from '@/components/OpinionChart';
+import DemographicScatterChart from '@/components/DemographicScatterChart';
+import BeliefShiftChart from '@/components/BeliefShiftChart';
+import GroupBeliefChart from '@/components/GroupBeliefChart';
 
 export default function RunHistoryPage() {
   const [runs, setRuns] = useState<any[]>([]);
@@ -22,6 +24,21 @@ export default function RunHistoryPage() {
       .then(setRunDetail)
       .catch((err) => console.error('Failed to load run details', err));
   }, [selectedRunId]);
+
+  const isComplete = runDetail?.run?.duration_remaining === 0;
+
+  const enrichedGraph =
+    runDetail?.graph
+      ?.filter((entry: any) => entry.duration_remaining === 0)
+      .map((entry: any) => {
+        const agent = runDetail.agents.find(
+          (a: any) => a.id === entry.agent_id
+        );
+        return {
+          ...entry,
+          ...agent,
+        };
+      }) || [];
 
   return (
     <div className="bg-[#f5f8fa] dark:bg-[#15202b] px-4 py-8 min-h-screen text-[#0f1419] dark:text-white">
@@ -79,33 +96,35 @@ export default function RunHistoryPage() {
                   value={runDetail.run.num_naive_agents}
                 />
               </div>
-              <OpinionChart data={runDetail.graph} metric="hesitancy" />
-              <OpinionChart data={runDetail.graph} metric="recommendation" />
 
-              <div className="space-y-4 pt-4">
-                <h2 className="font-semibold text-lg">
-                  Naive Agent Reflections
-                </h2>
-                {runDetail.graph.map((entry: any, i: number) => (
-                  <div
-                    key={i}
-                    className="bg-white dark:bg-[#192734] shadow-sm p-4 border border-gray-200 dark:border-[#2f3336] rounded-xl"
-                  >
-                    <div className="mb-1 font-bold text-[#1d9bf0] text-sm">
-                      Agent #{entry.agent_id.slice(0, 8)}
+              {isComplete && (
+                <div className="space-y-6">
+                  {[
+                    'age',
+                    'gender',
+                    'education',
+                    'income_bracket',
+                    'location_type',
+                  ].map((group) => (
+                    <div
+                      key={group}
+                      className="gap-6 grid sm:grid-cols-1 lg:grid-cols-2"
+                    >
+                      <DemographicScatterChart
+                        data={enrichedGraph}
+                        groupBy={group}
+                      />
+                      <GroupBeliefChart
+                        data={runDetail.graph}
+                        agents={runDetail.agents}
+                        groupBy={group}
+                      />
                     </div>
-                    <p className="mb-2 text-gray-700 dark:text-gray-200 text-sm">
-                      📌 <strong>Beliefs:</strong> {entry.beliefs || 'N/A'}
-                    </p>
-                    <p className="mb-2 text-gray-700 dark:text-gray-200 text-sm">
-                      💉 <strong>Hesitancy:</strong> {entry.hesitancy}
-                    </p>
-                    <p className="text-gray-700 dark:text-gray-200 text-sm">
-                      📣 <strong>Recommendation:</strong> {entry.recommendation}
-                    </p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
+              <BeliefShiftChart data={runDetail.graph} />
             </div>
           )}
         </div>

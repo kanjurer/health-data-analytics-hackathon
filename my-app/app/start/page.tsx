@@ -209,6 +209,24 @@ export default function Start() {
 
         {/* RIGHT: AGENTS LIST */}
         <div className="space-y-4 pr-2 max-h-[calc(100vh-150px)] overflow-y-auto">
+          {/* Controls */}
+          <div className="flex justify-end gap-4 pr-2">
+            <button
+              type="button"
+              onClick={() => setSelectedPredefined(agents)}
+              className="bg-green-500 hover:bg-green-600 px-4 py-2 rounded-full text-white text-xs transition"
+            >
+              ✅ Select All
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedPredefined([])}
+              className="bg-red-500 hover:bg-red-600 px-4 py-2 rounded-full text-white text-xs transition"
+            >
+              ♻️ Reset
+            </button>
+          </div>
+
           {agents.map((agent) => {
             const isSelected = selectedPredefined.some(
               (a) => a.id === agent.id

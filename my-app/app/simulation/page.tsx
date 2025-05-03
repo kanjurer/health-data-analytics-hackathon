@@ -7,6 +7,7 @@ import BackButton from '@/components/BackButton';
 import AgentScatterChart from '@/components/AgentScatterChart';
 import { getFlag } from '@/utils/utils';
 import { useRouter } from 'next/navigation';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type Agent = {
   id: number;
@@ -243,14 +244,19 @@ export default function Simulation() {
         {/* Right: Tweet Feed */}
         <div className="h-[calc(100vh-100px)] overflow-hidden">
           <div className="space-y-4 pr-2 h-full overflow-y-auto">
-            {tweetFeed.map((tw, i) => (
-              <TweetCard
-                key={i}
-                username={`User${i}`}
-                content={tw.content}
-                tags={[tw.created_by]}
-              />
-            ))}
+            <AnimatePresence initial={false}>
+              {[
+                [...tweetFeed].map((tw, i) => (
+                  <TweetCard
+                    key={`${tw.content}-${i}`}
+                    index={i}
+                    username={`User${i}`}
+                    content={tw.content}
+                    tags={[tw.created_by]}
+                  />
+                )),
+              ]}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -291,13 +297,21 @@ function TweetCard({
   username,
   content,
   tags = [],
+  index,
 }: {
   username: string;
   content: string;
   tags?: string[];
+  index: number;
 }) {
   return (
-    <div className="space-y-2 bg-white dark:bg-[#192734] shadow-sm p-4 border border-gray-200 dark:border-[#2f3336] rounded-xl text-gray-800 dark:text-gray-100">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.3, delay: index * 0.02 }}
+      className="space-y-2 bg-white dark:bg-[#192734] shadow-sm p-4 border border-gray-200 dark:border-[#2f3336] rounded-xl text-gray-800 dark:text-gray-100"
+    >
       <div className="font-semibold text-sm">@{username}</div>
       <div className="text-gray-700 dark:text-gray-300 text-sm">{content}</div>
       <div className="flex flex-wrap gap-2 pt-2">
@@ -310,6 +324,6 @@ function TweetCard({
           </span>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }

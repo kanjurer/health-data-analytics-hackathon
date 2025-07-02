@@ -3,8 +3,8 @@ Health Data Analytics Hackathon
 
 
 ## Members
-- Samson Mifflin ()
-- Hoang Le (hoang@dal.ca)
-- Aniq Elahi ()
-- Kanav Bhardwaj (kanav.bhardwaj@dal.ca)
+- Samson Mifflin 
+- Hoang Le 
+- Aniq Elahi
+- Kanav Bhardwaj
 
